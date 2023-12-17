@@ -140,3 +140,24 @@ for p in passes.itertuples():
 plt.title('Sweden Passes')
 plt.legend(handles=[seger, sweden])
 plt.show()
+
+# %% markdown
+# ### Challenge done non-iteratively (No for-loop).
+# %% codecell
+
+pitch = Pitch(pitch_color='grass', line_color='white', stripe=True, goal_type='box', pitch_length=pitch_length, pitch_width=pitch_width)
+fig, ax = pitch.draw(figsize=(20,14))
+
+seger_mask = (df.type_name == 'Pass') & (df.player_name == 'Sara Caroline Seger')
+seger_passes = df.loc[seger_mask, ['x', 'y', 'end_x', 'end_y']]
+sweden_mask = (df.type_name == 'Pass') & (df.team_name == team2) & (df.player_name != 'Sara Caroline Seger')
+sweden_passes = df.loc[sweden_mask, ['x', 'y', 'end_x', 'end_y']]
+
+seger_plot = pitch.scatter(seger_passes.x, seger_passes.y, alpha=1, s=250, color='blue', ax=ax, label='Caroline')
+seger_arrows = pitch.arrows(seger_passes.x, seger_passes.y, seger_passes.end_x, seger_passes.end_y, ax=ax, alpha=1, color='blue', width=2, headwidth=5)
+sweden_plot = pitch.scatter(sweden_passes.x, sweden_passes.y, alpha=0.5, s=250, color='yellow', ax=ax, label='Sweden')
+sweden_arrows = pitch.arrows(sweden_passes.x, sweden_passes.y, sweden_passes.end_x, sweden_passes.end_y, ax=ax, alpha=0.35, color='black', width=2, headwidth=5)
+
+plt.title('Sweden Passes')
+plt.legend(handles=[seger_plot, sweden_plot])
+plt.show()
