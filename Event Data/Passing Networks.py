@@ -124,3 +124,82 @@ for passer in directed_pairs.itertuples():
 plt.title("England Passing Network against Sweden")
 plt.legend(handles=[backward, forward])
 plt.show()
+
+# %% markdown
+# ### Centralisation
+# The centralisation index numerator is calculated by taking the sum of the difference between
+# maximal number of successful passes by one player and the number of succesful passes by each player.
+# The denominator is the sum of all passes multiplied by (number of players - 1).
+# Thomas Grund (2012) defines the index as: C = SUM<i-11>(P_max - P_i) / (N-1)SUM<i-11>(P_i)
+# where N = number of players (11). Read more at
+# Grund, Thomas U. “Network structure and team performance: The case of English Premier League soccer teams.” Social Networks 34.4 (2012): 682–690.
+
+# %% codecell
+def centralisation(passing_data, players=11):
+    max_passes = max(passing_data)
+    numerator = (max_passes - passing_data).sum()
+    denominator = (players-1) * pass_count.sum()
+    centralisation_index = numerator / denominator
+    return centralisation_index
+
+centralisation_index = centralisation(pass_count)
+print("Centralisation index is ", centralisation_index)
+
+pairs = england_passes.groupby('pair_key', as_index=False).count().iloc[:,:2].rename({'x':'pass_count'}, axis=1)
+pairs_no_keeper = pairs.loc[pairs['pair_key'].str.contains('Telford') == False]
+centralisation_no_keeper = centralisation(pairs_no_keeper.pass_count, 10)
+print("Centralisation index excluding the goalkeeper is ", centralisation_no_keeper)
+
+# %% markdown
+# ### Network Density
+# Exploring the density of the passing network as both a directed and undirected graph.
+# Literature states teams with more dense networks tend to perform better.
+# I will look at the networks both including and excluding the goalkeeper.
+# ## Directed Network
+
+# %% codecell
+N = 11 # number of players
+
+# Directed Potential Network Density
+fully_connected = N*(N-1)
+field_10 = (N-1)*(N-2)
+directed_pairs = england_passes.groupby(['surname', 'pass_recipient_surname'], as_index=False).count().iloc[:,:3].rename({'x':'pass_count'}, axis=1)
+density = directed_pairs.pass_count.count()/fully_connected
+
+exclude_keeper = directed_pairs.loc[(directed_pairs['surname'] != 'Telford') & (directed_pairs['pass_recipient_surname'] != 'Telford')]
+field_10_density = exclude_keeper.pass_count.count()/field_10
+
+print(f"Directed network density is: {density}")
+print(f"Directed network density without the goalkeeper is: {field_10_density}")
+
+# %% markdown
+# ## Undirected Network
+
+# %% codecell
+# Undirected Potential Network Density
+fully_connected = directed_fully_connected/2
+field_10 = directed_no_goalkeeper/2
+undirected_pairs = england_passes.groupby('pair_key', as_index=False).count().iloc[:,:2].rename({'x':'pass_count'}, axis=1)
+density = undirected_pairs.pass_count.count()/fully_connected
+
+exclude_keeper = undirected_pairs.loc[undirected_pairs['pair_key'].str.contains('Telford') == False]
+field_10_density = exclude_keeper.pass_count.count() / field_10
+
+print(f"Undirected network density is: {density}")
+print(f"Undirected network density without the goalkeeper is: {field_10_density}")
+
+# %% markdown
+# ### Who is the Hub
+# Which player(s) is the most connected passer?
+
+# %% codecell
+passing_involvments = {}
+for player in directed_pairs.surname.unique():
+    passing_involvments.update({player:directed_pairs.loc[(directed_pairs['surname'] == player) | (directed_pairs['pass_recipient_surname'] == player)].pass_count.sum()})
+print(f"Passing involvments by each player {passing_involvments}")
+
+# %% markdown
+# ### Challenge
+# Make a passing network of only forward passes for England
+
+# %% codecell
