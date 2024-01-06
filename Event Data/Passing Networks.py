@@ -203,3 +203,50 @@ print(f"Passing involvments by each player {passing_involvments}")
 # Make a passing network of only forward passes for England
 
 # %% codecell
+# filter forward passes
+forward_passes = england_passes.loc[england_passes['x'] < england_passes['end_x']]
+
+forward_pass_location = forward_passes.groupby('surname').mean()
+forward_recieve_location = forward_passes.groupby('pass_recipient_surname').mean()
+
+# calculate pass counts
+forward_pass_count = forward_passes.groupby('surname').count().iloc[:,1].rename('pass_count')
+
+# join into one dataframe
+forward_mean_location = forward_pass_location.join(recieve_location, on=None, how='inner', rsuffix='_recieve')
+forward_mean_location = forward_mean_location.join(pass_count, on=None, how='inner').reset_index()
+
+# calculate average of passing position and recieving position for each player
+# this give an idea of average position while participating in the passing network
+forward_mean_location['mean_x'] = forward_mean_location[['x','end_x_recieve']].mean(axis=1)
+forward_mean_location['mean_y'] = forward_mean_location[['y','end_y_recieve']].mean(axis=1)
+
+# normalize vertice size
+forward_mean_location['vertice_size'] = forward_mean_location['pass_count'] / forward_mean_location['pass_count'].max() * 1500
+
+forward_passing_pairs = forward_passes.groupby('pair_key', as_index=False).count().iloc[:,:2].rename({'x':'pass_count'}, axis=1)
+forward_passing_pairs['line_width'] = forward_passing_pairs['pass_count'] / forward_passing_pairs['pass_count'].max() * 10
+#forward_passing_pairs = forward_passing_pairs.loc[forward_passing_pairs['pass_count'] > 2]
+
+pitch = Pitch(pitch_color='grass', line_color='white', stripe=True, goal_type='box')
+fig, ax = pitch.draw(figsize=(20,14))
+
+pitch.scatter(forward_mean_location.mean_x, forward_mean_location.mean_y, s=forward_mean_location.vertice_size, zorder=3,
+                color='gold', linewidth=1, alpha=1, ax=ax)
+for player in forward_mean_location.itertuples():
+    pitch.annotate(player.surname, xy=(player.mean_x,player.mean_y), zorder=4, c='black',
+                    va='center', ha='center', weight='bold', size=16, ax=ax)
+
+for pair in forward_passing_pairs.itertuples():
+    players = pair.pair_key.split("_")
+    passer = players[0]
+    recipient = players[1]
+    passer_x = forward_mean_location.loc[forward_mean_location['surname'] == passer].mean_x.iloc[0]
+    passer_y = forward_mean_location.loc[forward_mean_location['surname'] == passer].mean_y.iloc[0]
+    recipient_x = forward_mean_location.loc[forward_mean_location['surname'] == recipient].mean_x.iloc[0]
+    recipient_y = forward_mean_location.loc[forward_mean_location['surname'] == recipient].mean_y.iloc[0]
+    pitch.lines(passer_x, passer_y, recipient_x, recipient_y, alpha=1, lw=pair.line_width, zorder=1, color='red', ax=ax)
+
+
+plt.title("England Passing Network against Sweden With Forward Passes Only")
+plt.show()
